@@ -1,0 +1,30 @@
+{% extends 'network/posts_layout.html' %}
+
+{% load static %}
+
+{% block title %}{{ visited_user.username }}{% endblock %}
+
+{% block header %}
+<h1 class="fs-2">{{ visited_user.username }}</h1>
+<div class="row container align-items-center mb-4">
+    <div class="mb-2 col-12 col-md-2">
+        <b>Followers:</b> 
+        <span id="follower-count">{{ follower_count }}</span>
+    </div>
+    <div class="mb-3 col-12 col-md-2"><b>Following:</b> {{ following_count }}</div>
+    {% if user.is_authenticated and user != visited_user %}
+    {% if is_following %}
+    <button id="follow-button" class="col-12 col-md-2 btn btn-danger" data-user-id={{ visited_user.id }}>
+        Unfollow
+    </button>
+    {% else %}
+    <button id="follow-button" class="col-12 col-md-2 btn btn-primary" data-user-id={{ visited_user.id }}>
+        Follow
+    </button>
+    {% endif %}
+    {% endif %}
+</div>
+<h2 class="fs-4 mb-3">{{ visited_user.username }}'s posts</h2>
+{% endblock %}
+
+

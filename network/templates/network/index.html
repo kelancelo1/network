@@ -1,0 +1,12 @@
+{% extends "network/posts_layout.html" %} 
+
+{% block title %}All Posts{% endblock %}
+
+{% block header %}
+<h1 class="fs-2">All Posts</h1>
+<form action="{% url 'index' %}" method="post" class="mb-5">
+  {% csrf_token %}
+  <textarea name="body" rows="2" placeholder="New post..." class="form-control mb-2" required></textarea>
+  <input type="submit" value="Post" class="btn btn-primary" />
+</form>
+{% endblock %}

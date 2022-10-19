@@ -1,0 +1,123 @@
+{% extends "network/layout.html" %}
+
+{% load static %}
+
+{% block script %}
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="{% static 'network/follow-button.js' %}"></script>
+<script src="{% static 'network/like-button.js' %}"></script>
+<script src="{% static 'network/edit-post.js' %}"></script>
+<script src="{% static 'network/comments.js' %}" type="text/babel"></script>
+{% endblock %}
+
+{% block body %}
+
+{% block header %}{% endblock %}
+
+<div id="posts" class="row gy-3">
+    {% for post in page %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <p class="card-text" id="post-{{ post.id }}-body">{{ post.body }}</p>
+                <form 
+                    class="mb-2 edit-post-body-form" 
+                    id="edit-post-body-form-{{ post.id }}" 
+                    data-post-id="{{post.id}}"
+                >
+                    {% csrf_token %}
+                    <textarea name="body" rows="2" class="form-control mb-2"></textarea>
+                    <input type="submit" value="Save" class="btn btn-sm btn-primary" />
+                </form>
+                <div class="text-muted fw-bold">
+                    by:
+                    <a href="{% url 'user' user_id=post.author.id %}" class="profile-link">
+                        {{ post.author.username }}
+                    </a>
+                </div>
+                <div class="card-text text-muted mb-3">{{ post.date_created }}</div>
+                <div class="d-flex">
+                    <div class="me-auto">
+                        {% if post.liked %}
+                        <i class="bi bi-hand-thumbs-up-fill like-button" data-post-id="{{ post.id }}"></i>
+                        {% else %}
+                        <i class="bi bi-hand-thumbs-up like-button" data-post-id="{{post.id}}"></i>
+                        {% endif %}
+                        <span class="like-count">{{ post.like_count }}</span>
+                    </div>
+                    <button 
+                        data-post-id="{{post.id}}" 
+                        class="btn btn-sm btn-primary comments-button"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#comments-modal"
+                    >
+                        Comments
+                    </button>
+                    {% if request.user == post.author %}
+                    <button 
+                        id="edit-post-button-{{ post.id }}" 
+                        class="btn btn-sm btn-success ms-2 edit-post-button"
+                        data-post-id="{{post.id}}"
+                    >
+                        Edit post
+                    </button>
+                    <button 
+                        id="cancel-edit-button-{{ post.id }}" 
+                        class="btn btn-sm btn-danger ms-2 cancel-edit-button"
+                        data-post-id="{{post.id}}"
+                    >
+                        Cancel
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div class="comment-modal-root" data-post-id="{{ post.id }}"></div>
+
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="modal fade" id="comments-modal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Comments</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            
+            <div id="root"></div>
+
+        </div>
+    </div>
+</div>
+
+{% if page.paginator.num_pages > 1 %}
+<nav>
+    <ul class="pagination mt-3 justify-content-center">
+        {% if page.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page.previous_page_number }}">Previous</a>
+        </li>
+        {% endif %}
+        <small class="mx-2 align-self-center">
+            Page {{ page.number }} of {{ page.paginator.num_pages }}
+        </small>
+        {% if page.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page.next_page_number }}">Next</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page.paginator.num_pages }}">Last</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+

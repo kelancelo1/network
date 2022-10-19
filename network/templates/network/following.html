@@ -1,0 +1,10 @@
+{% extends "network/posts_layout.html" %}
+
+{% block title %}Following{% endblock %}
+
+{% block header %}
+<h1 class="fs-2">Following</h1>
+{% if page.paginator.count == 0 %}
+<p>You're not following anyone.</p>
+{% endif %}
+{% endblock %}
