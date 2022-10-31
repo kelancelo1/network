@@ -1,0 +1,27 @@
+version: '3.7'
+
+services:
+    app:
+        image: python:3
+        command: sh -c "pip install -r requirements.txt && python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"
+        ports:
+            - 8000:8000
+        working_dir: /usr/src/app
+        volumes:
+          - ./:/usr/src/app
+        environment: 
+            MYSQL_HOST: mysql
+            MYSQL_USER: root
+            MYSQL_PASSWORD: zxcdsaqwe1
+            MYSQL_DB: network
+
+    mysql:
+        image: mysql
+        volumes:
+            - network-mysql-data:/var/lib/mysql
+        environment: 
+            MYSQL_ROOT_PASSWORD: zxcdsaqwe1
+            MYSQL_DATABASE: network
+
+volumes:
+    network-mysql-data:

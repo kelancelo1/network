@@ -5,20 +5,22 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+    <link href="{% static 'network/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'network/styles.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
     <title>{% block title %}Social Network{% endblock %}</title>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.min.js"
-        integrity="sha384-IDwe1+LCz02ROU9k972gdyvl+AESN10+x7tBKgc9I5HFtuNz0wWnPclzo6p9vxnk"
-        crossorigin="anonymous">
-    </script>
+    <script src="{% static 'network/bootstrap/js/bootstrap.min.js' %}"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="{% static 'network/follow-button.js' %}"></script>
+    <script src="{% static 'network/like-button.js' %}"></script>
+    <script src="{% static 'network/edit-post.js' %}"></script>
+    <script src="{% static 'network/comments.js' %}" type="text/babel"></script>
     {% block script %}{% endblock %}
 </head>
 
 <body>
-
     <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'index' %}">Network</a>
@@ -27,18 +29,24 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-                <div class="navbar-nav">
-                    {% if user.is_authenticated %}
-                    <a class="nav-link" href="{% url 'user' user_id=user.id%}"><strong>{{ user.username }}</strong></a>
-                    {% endif %}
+                <div class="navbar-nav w-100">
                     <a class="nav-link" href="{% url 'index' %}">All Posts</a>
                     {% if user.is_authenticated %}
-                    <a class="nav-link" href="{% url 'following' %}">Following</a>
-                    <a class="nav-link" href="{% url 'logout' %}">Logout</a>
-                    {% else %}
-                    <a class="nav-link" href="{% url 'login' %}">Login</a>
-                    <a class="nav-link" href="{% url 'register' %}">Register</a>
+                        <a class="nav-link" href="{% url 'following' %}">Following</a>
                     {% endif %}
+                    
+                    <div class="d-flex flex-column flex-lg-row ms-lg-auto">
+                        {% if user.is_authenticated %}
+                        <a class="nav-link" href="{% url 'user' user_id=user.id%}"><strong>{{ user.username }}</strong></a>
+                        {% endif %}
+                        {% if user.is_authenticated %}
+                        <a class="nav-link" href="{% url 'password_change' %}">Change Password</a>
+                        <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                        {% else %}
+                        <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        <a class="nav-link" href="{% url 'register' %}">Register</a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -59,6 +67,13 @@
         {% block body %}
         {% endblock %}
     </div>
+
+    <script>
+        // Stop the form resubmission on page refresh
+        if (window.history.replaceState) { 
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
 </body>
 
 </html>

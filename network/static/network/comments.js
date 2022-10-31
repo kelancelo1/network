@@ -18,6 +18,7 @@ function CommentsModalBodyandFooter(props) {
                 ...state,
                 ...data
             });
+            document.querySelector(`#post-${props.postId}-comment-count`).innerHTML = data.comment_count;
         })
     }
 
@@ -37,6 +38,10 @@ function CommentsModalBodyandFooter(props) {
         .then(response => response.json())
         .then(data => {
             loadComments(1);
+            setState({
+                ...state,
+                commentBody: ""
+            })
         })
     }
 
@@ -55,7 +60,7 @@ function CommentsModalBodyandFooter(props) {
                     :   <div className="col-12">No comments.</div>
                     }
                 </div>
-                {state.page_num > 1 
+                {state.page_count > 1 
                 ?   <Pagination 
                         loadComments={loadComments}
                         page_num={state.page_num}
@@ -123,7 +128,7 @@ function Pagination(props) {
                     Page {props.page_num} of {props.page_count}
                 </small>
                     
-                ${props.page_num < props.page_count
+                {props.page_num < props.page_count
                 ?   <>
                         <li className="page-item">
                             <a className="page-link" onClick={() => props.loadComments(props.page_num + 1)}>

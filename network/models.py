@@ -1,4 +1,3 @@
-from tokenize import blank_re
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -8,15 +7,7 @@ class User(AbstractUser):
     liked_posts = models.ManyToManyField("Post", blank=True, related_name="likers")
 
     def __str__(self):
-        return self.username
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "username": self.username,
-            "following": list(self.following.values_list("id", flat=True)),
-            "followers": list(self.followers.values_list("id", flat=True))
-        }
+        return f"{self.id}: {self.username}"
     
     
 class Post(models.Model):
@@ -25,7 +16,7 @@ class Post(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.body
+        return f"{self.author}: {self.body}, {self.date_created}"
 
 
 class Comment(models.Model):
@@ -35,4 +26,11 @@ class Comment(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.author}, {self.post}: {self.body}"
+        return f"{self.author} -> {self.post}: {self.body}"
+
+    def serialize(self):
+        return {
+            "author": self.author.username,
+            "body": self.body,
+            "date_created": self.date_created.strftime("%b. %#d, %Y, %#I:%M %p")
+        }

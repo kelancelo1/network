@@ -1,17 +1,44 @@
-{% extends 'network/posts_layout.html' %}
-
-{% load static %}
+{% extends 'network/layout.html' %}
 
 {% block title %}{{ visited_user.username }}{% endblock %}
 
-{% block header %}
+{% block body %}
 <h1 class="fs-2">{{ visited_user.username }}</h1>
 <div class="row container align-items-center mb-4">
-    <div class="mb-2 col-12 col-md-2">
-        <b>Followers:</b> 
-        <span id="follower-count">{{ follower_count }}</span>
+    <div class="mb-3 col-12 col-md-2 fw-bold">
+        Followers:
+        {% if visited_user.followers.count %}
+            <span 
+                id="follower-count" 
+                class="text-primary fw-bold" 
+                data-bs-toggle="modal" 
+                data-bs-target="#followers-modal"
+            >
+                {{ visited_user.followers.count }}
+            </span>
+        {% else %}
+            None
+        {% endif %}
+        
+        {% include "network/user_list_template.html" with user_list=visited_user.followers.all modal_id="followers-modal" modal_title="Followers"%}
     </div>
-    <div class="mb-3 col-12 col-md-2"><b>Following:</b> {{ following_count }}</div>
+    <div class="mb-3 col-12 col-md-2 fw-bold">
+        Following:
+        {% if visited_user.following.count %}
+            <span 
+                id="following-count" 
+                class="fw-bold text-primary"
+                data-bs-toggle="modal" 
+                data-bs-target="#following-modal"
+            >
+                {{ visited_user.following.count }}
+            </span>
+        {% else %}
+            None
+        {% endif %}
+        
+        {% include "network/user_list_template.html" with user_list=visited_user.following.all modal_id="following-modal" modal_title="Following"%}
+    </div>
     {% if user.is_authenticated and user != visited_user %}
     {% if is_following %}
     <button id="follow-button" class="col-12 col-md-2 btn btn-danger" data-user-id={{ visited_user.id }}>
@@ -25,6 +52,8 @@
     {% endif %}
 </div>
 <h2 class="fs-4 mb-3">{{ visited_user.username }}'s posts</h2>
+
+{% if visited_user.posts.exists %}
+    {% include "network/posts_template.html" %}
+{% endif %}
 {% endblock %}
-
-

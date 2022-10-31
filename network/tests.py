@@ -1,110 +1,223 @@
 from django.test import TestCase, Client
 from .models import *
-from django.db.models import Max
+from django.urls import reverse
 
-# Create your tests here.
 
-class AllTestCase(TestCase):
+def create_test_data(cls):
+    # Create users.
+    cls.u1 = User.objects.create_user("username1", "email1", "password1")
+    cls.u2 = User.objects.create_user("username2", "email2", "password2")
+    cls.u1.save()
+    cls.u2.save()
+    # Create posts.
+    cls.p1 = Post.objects.create(author=cls.u1, body="post1")
+    cls.p2 = Post.objects.create(author=cls.u2, body="post2")
+    # Create comment.
+    cls.c1 = Comment.objects.create(author=cls.u1, post=cls.p2, body="test comment")
+    # Add follower.
+    cls.u1.followers.add(cls.u2)
+    # Create authenticated client.
+    cls.c = Client()
+    cls.c.login(username="username1", password="password1")
 
-    def setUp(self):
-        # Create users.
-        u1 = User.objects.create_user("username1", "email1", "password1")
-        u2 = User.objects.create_user("username2", "email2", "password2")
-        u3 = User.objects.create_user("username3", "email3", "password3")
-        u1.save()
-        u2.save()
-        u3.save()
+    
+class IndexViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        create_test_data(cls)
 
-        # Create posts.
-        p1 = Post.objects.create(author=u1, body="post1")
-        p2 = Post.objects.create(author=u1, body="post2")
-        p3 = Post.objects.create(author=u1, body="post3")
-        p4 = Post.objects.create(author=u2, body="post4")
-        p5 = Post.objects.create(author=u2, body="post5")
-        p6 = Post.objects.create(author=u3, body="post6")
-        p7 = Post.objects.create(author=u3, body="post7")
-
-        # Create comments.
-        c1 = Comment.objects.create(author=u1, post=p4, body="comment1")
-        c2 = Comment.objects.create(author=u1, post=p4, body="comment2")
-        c3 = Comment.objects.create(author=u2, post=p4, body="comment3")
-        c4 = Comment.objects.create(author=u2, post=p4, body="comment4")
+    @classmethod
+    def check_rendered_templates(cls, response):
+        return (
+            sorted({
+                "network/layout.html", 
+                "network/index.html", 
+                "network/posts_template.html", 
+                "network/user_list_template.html"
+            }) == sorted({template.name for template in response.templates})
+        )
+    
+    def test_get_request(self):
+        # Doesn't matter whether the user is logged in or not.
+        c = Client()
+        response = c.get(reverse("index"))
+        self.assertEqual(response.context["page"].paginator.count, 2)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(IndexViewTest.check_rendered_templates(response))
         
-        # Add user's followers.
-        u2.followers.add(u1)
-        u2.followers.add(u3)
 
-        # Add users' liked posts.
-        u2.liked_posts.add(p4)
-        u2.liked_posts.add(p5)
-        u2.liked_posts.add(p6)
-        u1.liked_posts.add(p4)
-        u3.liked_posts.add(p4)
+    def test_valid_authenticated_post_request(self):
+        response = IndexViewTest.c.post(reverse("index"), {"body": "test post body"})
+        self.assertTrue(Post.objects.filter(body="test post body").exists())
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(IndexViewTest.check_rendered_templates(response))
 
-    def test_user_count(self):
-        users = User.objects.all()
-        self.assertEqual(users.count(), 3)
+    def test_invalid_authenticated_post_request(self):
+        response = IndexViewTest.c.post(reverse("index"), {"body": ""})
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(IndexViewTest.check_rendered_templates(response))
 
-    def test_post_count(self):
-        posts = Post.objects.all()
-        self.assertEqual(posts.count(), 7)
-
-    def test_comment_count(self):
-        comments = Comment.objects.all()
-        self.assertEqual(comments.count(), 4)
-
-    def test_user_posts_count(self):
-        u1 = User.objects.get(pk=1)
-        self.assertEqual(u1.posts.count(), 3)
-
-    def test_user_comments_count(self):
-        u1 = User.objects.get(pk=1)
-        self.assertEqual(u1.comments.count(), 2)
-
-    def test_user_followers_count(self):
-        u2 = User.objects.get(pk=2)
-        self.assertEqual(u2.followers.count(), 2)
-
-    def test_user_following_count(self):
-        u1 = User.objects.get(pk=1)
-        self.assertEqual(u1.following.count(), 1)
-
-    def test_user_liked_posts_count(self):
-        u2 = User.objects.get(pk=2)
-        self.assertEqual(u2.liked_posts.count(), 3)
-
-    def test_post_comments_count(self):
-        p4 = Post.objects.get(pk=4)
-        self.assertEqual(p4.comments.count(), 4)
-
-    def test_post_likers_count(self):
-        p4 = Post.objects.get(pk=4)
-        self.assertEqual(p4.likers.count(), 3)
-
-    def test_index(self):
+    def test_unauthenticated_post_request(self):
         c = Client()
-        response = c.get("/")
+        response = c.post(reverse("index"), {"body": "test post body"})
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(IndexViewTest.check_rendered_templates(response))
+
+
+class PostViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        create_test_data(cls)
+
+    def test_like_post(self):
+        response = PostViewTest.c.put(
+            reverse("post", args=[PostViewTest.p1.id]), 
+            {"liked": True}, 
+            content_type="application/json"
+        )
+        self.assertTrue(response.json()["liked"])
+        self.assertEqual(response.json()["like_count"], 1)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["page"].paginator.count, 7)
 
-    def test_valid_profile_page(self):
-        max_id = User.objects.all().aggregate(Max("id"))["id__max"]
-        c = Client()
-        response = c.get(f"/user/{max_id}")
+    def test_unlike_post(self):
+        PostViewTest.u1.liked_posts.add(PostViewTest.p2)
+        PostViewTest.u2.liked_posts.add(PostViewTest.p2)
+        response = PostViewTest.c.put(
+            reverse("post", args=[PostViewTest.p2.id]), 
+            {"liked": False}, 
+            content_type="application/json"
+        )
+        self.assertFalse(response.json()["liked"])
+        self.assertEqual(response.json()["like_count"], 1)
         self.assertEqual(response.status_code, 200)
-    
-    def test_invalid_profile_page(self):
-        max_id = User.objects.all().aggregate(Max("id"))["id__max"]
+
+    def test_edit_post_body(self):
+        response = PostViewTest.c.put(
+            reverse("post", args=[PostViewTest.p1.id]), 
+            {"body": "new body"}, 
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 204)
+
+    def test_edit_other_user_post_body(self):
+        response = PostViewTest.c.put(
+            reverse("post", args=[PostViewTest.p2.id]), 
+            {"body": "new body"}, 
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_unauthenticated_request(self):
         c = Client()
-        response = c.get(f"/user/{max_id + 1}")
+        response = c.put(
+            reverse("post", args=[PostViewTest.p1.id]), 
+            {"body": "new body"}, 
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 302)
+
+
+class UserViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        create_test_data(cls)
+
+    def test_get_request(self):
+        response = UserViewTest.c.get(reverse("user", args=[UserViewTest.u2.id]))
+        self.assertEqual(response.context["visited_user"], UserViewTest.u2)
+        self.assertEqual(response.context["page"].paginator.count, 1)
+        self.assertEqual(response.context["is_following"], False)
+        self.assertEqual(
+            sorted({
+                "network/layout.html", 
+                "network/profile.html", 
+                "network/posts_template.html", 
+                "network/user_list_template.html"
+            }),
+            sorted({template.name for template in response.templates})    
+        )
+
+    def test_get_nonexisting_user(self):
+        response = UserViewTest.c.get(reverse("user", args=[3]))
         self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            sorted(["network/layout.html", "network/404.html"]),
+            sorted([template.name for template in response.templates])    
+        )
 
-    def test_comments_json_1(self):
+    def test_follow_user(self):
+        response = UserViewTest.c.put(reverse("user", args=[UserViewTest.u2.id]))
+        self.assertTrue(response.json()["is_following"])
+        self.assertEqual(response.json()["follower_count"], 1)
+
+    def test_unfollow_user(self):
         c = Client()
-        response = c.get(f"/comments/4")
-        self.assertEqual(response.json()["comment_count"], 4)
-    
-    def test_comments_json_2(self):
+        # Log in as user2 then unfollow user1
+        c.login(username="username2", password="password2")
+        response = c.put(reverse("user", args=[UserViewTest.u1.id]))
+        self.assertFalse(response.json()["is_following"])
+        self.assertEqual(response.json()["follower_count"], 0)
+
+    def test_follow_yourself(self):
+        response = UserViewTest.c.put(reverse("user", args=[UserViewTest.u1.id]))
+        self.assertEqual(response.status_code, 400)
+
+    def test_unauthenticated_request(self):
         c = Client()
-        response = c.get(f"/comments/1")
+        response = c.put(reverse("user", args=[UserViewTest.u1.id]))
+        self.assertEqual(response.status_code, 401) 
+
+
+class FollowingViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        create_test_data(cls)
+
+    def test_get_request_without_following_users(self):
+        response = FollowingViewTest.c.get(reverse("following"))
+        self.assertEqual(response.context["page"].paginator.count, 0)  
+        self.assertEqual(
+            sorted(["network/layout.html", "network/following.html"]),
+            sorted([template.name for template in response.templates])    
+        )
+
+    def test_get_request_with_following_users(self):
+        FollowingViewTest.u1.following.add(FollowingViewTest.u2)
+        response = FollowingViewTest.c.get(reverse("following"))
+        self.assertEqual(response.context["page"].paginator.count, 1)
+        self.assertEqual(
+            sorted(["network/layout.html", "network/following.html", "network/posts_template.html", "network/user_list_template.html"]),
+            sorted([template.name for template in response.templates])    
+        )
+
+    def test_unauthenticated_request(self):
+        c = Client()
+        response = c.get(reverse("following"))
+        self.assertEqual(response.status_code, 302)
+
+
+class CommentViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        create_test_data(cls)
+
+    def test_get_nonexisting_comments(self):
+        response = CommentViewTest.c.get(reverse("comments", args=[CommentViewTest.p1.id]))
         self.assertEqual(response.json()["comment_count"], 0)
+        self.assertEqual(response.json()["page_count"], 1)
+
+    def test_create_comment(self):
+        response = CommentViewTest.c.post(
+            reverse("comments", args=[CommentViewTest.p1.id]), 
+            {"body": "test comment"}, 
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+
+    def test_get_existing_comments(self):
+        response = CommentViewTest.c.get(reverse("comments", args=[CommentViewTest.p2.id]))
+        self.assertEqual(len(response.json()["page"]), 1)
+        self.assertEqual(response.json()["comment_count"], 1)
+        self.assertEqual(response.json()["page_num"], 1)
+        self.assertEqual(response.json()["page_count"], 1)
+

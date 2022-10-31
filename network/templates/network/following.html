@@ -1,10 +1,17 @@
-{% extends "network/posts_layout.html" %}
+{% extends "network/layout.html" %}
 
 {% block title %}Following{% endblock %}
 
-{% block header %}
+{% block body %}
 <h1 class="fs-2">Following</h1>
-{% if page.paginator.count == 0 %}
-<p>You're not following anyone.</p>
+{% if user.following.exists %}
+    {% if page.paginator.count == 0 %}
+        <p>The people you follow hasn't posted yet.</p>
+    {% else %}
+        {% include "network/posts_template.html" %}
+    {% endif %}
+{% else %}
+    <p>You're not following anyone.</p>
 {% endif %}
+
 {% endblock %}

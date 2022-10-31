@@ -21,3 +21,23 @@
 .page-link {
     cursor: pointer;
 }
+
+span[data-bs-toggle="modal"] {
+    cursor: pointer;
+}
+
+span[data-bs-toggle="modal"]:hover {
+    text-decoration: underline;
+}
+
+.list-group-item>a {
+    text-decoration: none;
+}
+
+.list-group-item>a:hover {
+    text-decoration: underline;
+}
+
+.bi-hand-thumbs-up, .bi-hand-thumbs-up-fill {
+    color: #0d6efd;
+}
